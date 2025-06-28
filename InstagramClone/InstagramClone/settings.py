@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'users',
     'posts',
     'messages_app',
-    'notifications'
+    'notifications',
+    'stories'
 ]
 
 MIDDLEWARE = [

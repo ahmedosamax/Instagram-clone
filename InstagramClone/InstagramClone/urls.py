@@ -26,6 +26,7 @@ urlpatterns = [
     path('home',include('posts.urls')),
     path('messages/', include('messages_app.urls')),
     path('notifications/', include('notifications.urls')),
+    path('stories/', include('stories.urls')),
 ]
 
 
