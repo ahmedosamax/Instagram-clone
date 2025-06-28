@@ -7,6 +7,7 @@ from django.urls import conf
 from django.db.models import Q
 from .forms import CustomUserCreationForm, ProfileForm
 from .models import Profile,Follow, FollowRequest, Block
+from posts.models import Post
 
 def loginUser(request):
     page = 'login'
