@@ -25,7 +25,7 @@ urlpatterns = [
     path('', include('users.urls')),
     path('home',include('posts.urls')),
     path('messages/', include('messages_app.urls')),
-    path('notifications/', include('notifications.urls', namespace='notifications')),
+    path('notifications/', include('notifications.urls')),
 ]
 
 
