@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h4>Search</h4>
+
+    <!-- Search Form -->
+    <form method="GET" action="{% url 'search-users' %}" class="mb-4">
+        <div class="input-group">
+            <input type="text" id="live-search" name="q" class="form-control" placeholder="Search users..." value="{{ query }}">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+        <ul class="list-group mt-2" id="live-results" style="display: none;"></ul>
+
+    </form>
+
+    <!-- Search History -->
+    {% if history %}
+        <div class="mb-4">
+            <h6 class="text-muted">Recent Searches</h6>
+            <ul class="list-group">
+                {% for entry in history %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'search-users' %}?q={{ entry.keyword }}">{{ entry.keyword }}</a>
+                        <form method="POST" action="{% url 'delete-search-history' entry.keyword %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Search Results -->
+    {% if query %}
+        <h6>Results for "<strong>{{ query }}</strong>"</h6>
+        <ul class="list-group">
+            {% for user in users %}
+                <li class="list-group-item d-flex align-items-center">
+                    <img src="{{ user.profile.profile_image.url }}" alt="Profile" class="rounded-circle me-3" style="width:40px; height:40px;">
+                    <a href="{% url 'profile' user.username %}" class="text-decoration-none text-dark">
+                        {{ user.username }}
+                    </a>
+                </li>
+            {% empty %}
+                <li class="list-group-item">No users found.</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% endblock %}
+
+

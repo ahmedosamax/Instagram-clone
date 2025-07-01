@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login • Instagram</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'styles/login.css' %}">
+    <link rel="icon" href="{% static 'images/instagram-logo.png' %}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #fff;
+        }
+        .main-wrapper {
+            display: flex;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-left {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            background-color: #fff;
+        }
+        .login-left img {
+            max-height: 550px;
+            width: auto;
+        }
+        .login-right {
+            flex: 1;
+            max-width: 400px;
+            padding: 20px;
+        }
+        .form-container {
+            border: 1px solid #ddd;
+            padding: 40px;
+            background-color: #fff;
+            text-align: center;
+        }
+        .logo img {
+            width: 180px;
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #3897f0;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .separator {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .line {
+            flex: 1;
+            height: 1px;
+            background-color: #ccc;
+        }
+        .or {
+            margin: 0 10px;
+            font-weight: bold;
+            color: #888;
+        }
+        .fb-login {
+            color: #385185;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .forgot {
+            margin-top: 15px;
+        }
+        .signup-box {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+        .get-app {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .get-app img {
+            height: 40px;
+            margin: 5px;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="login-left">
+            <img src="{% static 'images/insta-mockup.png' %}" alt="Instagram Mockup">
+        </div>
+        <div class="login-right">
+            <div class="form-container">
+                <div class="logo">
+                    <img src="{% static 'images/instagram-logo.png' %}" alt="Instagram Logo">
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="error-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="password" name="password" placeholder="Password" required>
+                    <button type="submit">Log in</button>
+                </form>
+
+                <div class="separator">
+                    <div class="line"></div>
+                    <div class="or">OR</div>
+                    <div class="line"></div>
+                </div>
+
+                <div class="forgot">
+                    <a href="#">Forgot password?</a>
+                </div>
+            </div>
+
+            <div class="signup-box">
+                <p>Don't have an account? <a href="{% url 'register' %}">Sign up</a></p>
+            </div>
+
+            <div class="get-app">
+                <p>Get the app.</p>
+                <img src="{% static 'assets/app-store.png' %}" alt="App Store">
+                <img src="{% static 'assets/google-play.png' %}" alt="Google Play">
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+  setTimeout(function() {
+    const msg = document.querySelector('.error-message');
+    if (msg) msg.style.display = 'none';
+  }, 3000);
+</script>
+</html>

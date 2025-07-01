@@ -1,0 +1,119 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register • Instagram</title>
+    <link rel="stylesheet" href="{% static 'styles/login.css' %}">
+    <style>
+        body {
+            background-color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .register-wrapper {
+            max-width: 400px;
+            margin: 60px auto;
+        }
+        .register-card, .login-redirect-card {
+            width: 100%;
+            border: 1px solid #dbdbdb;
+            background-color: #fff;
+            text-align: center;
+            border-radius: 8px;
+        }
+        .register-card {
+            padding: 40px 30px;
+            margin-bottom: 10px;
+        }
+        .login-redirect-card {
+            padding: 20px;
+        }
+        .register-card input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        .register-card button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #3897f0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .error-message, .form-error {
+            color: red;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            text-align: left;
+        }
+        .login-redirect-card a {
+            color: #0095f6;
+            font-weight: bold;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="register-wrapper">
+
+    <!-- Registration Form Card -->
+    <div class="register-card">
+        <img src="{% static 'images/instagram-logo.png' %}" alt="Instagram" width="200" style="margin-bottom: 20px;">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="email" name="email" placeholder="Email" value="{{ form.email.value|default:'' }}">
+            {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors.0 }}</div>
+            {% endif %}
+
+            <input type="text" name="username" placeholder="Username" value="{{ form.username.value|default:'' }}">
+            {% if form.username.errors %}
+                <div class="form-error">{{ form.username.errors.0 }}</div>
+            {% endif %}
+
+            <input type="password" name="password1" placeholder="Password">
+            {% if form.password1.errors %}
+                <div class="form-error">{{ form.password1.errors.0 }}</div>
+            {% endif %}
+
+            <input type="password" name="password2" placeholder="Confirm Password">
+            {% if form.password2.errors %}
+                <div class="form-error">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+
+            <button type="submit">Sign Up</button>
+        </form>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-message">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Already Have Account Card -->
+    <div class="login-redirect-card">
+        Already have an account?
+        <a href="{% url 'login' %}">Log in</a>
+    </div>
+
+</div>
+
+<script>
+    setTimeout(function () {
+        document.querySelectorAll('.error-message').forEach(function(el) {
+            el.style.display = 'none';
+        });
+    }, 4000); // Hide after 4 seconds
+</script>
+
+</body>
+</html>
