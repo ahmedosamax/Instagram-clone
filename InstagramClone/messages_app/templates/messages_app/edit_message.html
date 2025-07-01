@@ -1,0 +1,13 @@
+<!-- filepath: d:\Instagram-clone\InstagramClone\messages_app\templates\messages_app\edit_message.html -->
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:500px;">
+    <h5>Edit Message</h5>
+    <form method="post">
+        {% csrf_token %}
+        <textarea name="content" class="form-control mb-2" rows="3" required>{{ message.content }}</textarea>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        <a href="{% url 'thread' user_id=other_user_id %}" class="btn btn-secondary btn-sm">Cancel</a>
+    </form>
+</div>
+{% endblock %}

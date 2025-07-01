@@ -11,6 +11,9 @@ from posts.models import Post
 from django.urls import reverse
 from django.http import JsonResponse
 from notifications.models import Notification
+from stories.models import Story,StoryView
+from datetime import timedelta
+from django.utils import timezone
 
 def loginUser(request):
     page = 'login'
@@ -96,6 +99,16 @@ def profile_view(request, username):
     else:
         posts = []
 
+    # --- STORIES FEATURE ---
+    recent = timezone.now() - timedelta(hours=24)
+    user_stories = Story.objects.filter(user=target_user, created_at__gte=recent).order_by('created_at')
+    has_story = user_stories.exists()
+    # Check if all stories are viewed by the current user
+    story_viewed = True
+    if has_story and request.user.is_authenticated:
+        story_viewed = StoryView.objects.filter(story__in=user_stories, viewer=request.user).count() == user_stories.count()
+    # --- END STORIES FEATURE ---
+
     context = {
         'target_user': target_user,
         'profile': profile,
@@ -105,6 +118,9 @@ def profile_view(request, username):
         'post_count': target_user.posts.count(),
         'followers_count': target_user.followers_set.count(),
         'following_count': target_user.following_set.count(),
+        'user_stories': user_stories,
+        'has_story': has_story,
+        'story_viewed': story_viewed,
     }
 
     return render(request, 'users/profile.html', context)
@@ -291,7 +307,7 @@ def delete_search_history(request, keyword):
 
 
 
-
+@login_required
 def live_search_users(request):
     q = request.GET.get('q', '').strip()
     users = User.objects.all()
@@ -317,3 +333,19 @@ def live_search_users(request):
             'profile_image': user.profile.profile_image.url if user.profile.profile_image else '/static/profiles/user-default.png'
         })
     return JsonResponse({'results': results})
+
+
+@login_required
+def deactivate_account(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        user = authenticate(username=request.user.username, password=password)
+        if user:
+            user.is_active = False
+            user.save()
+            logout(request)
+            messages.success(request, "Your account has been deactivated.")
+            return redirect('login')
+        else:
+            messages.error(request, "Incorrect password. Please try again.")
+    return render(request, 'users/deactivate_account.html')

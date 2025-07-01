@@ -1,0 +1,16 @@
+<!-- filepath: d:\Instagram-clone\InstagramClone\users\templates\users\deactivate_account.html -->
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5" style="max-width:400px;">
+    <h4>Deactivate Account</h4>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="password" class="form-label">Enter your password to confirm:</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-danger w-100">Deactivate Account</button>
+    </form>
+    <a href="{% url 'profile' request.user.username %}" class="btn btn-link mt-3">Cancel</a>
+</div>
+{% endblock %}

@@ -25,19 +25,43 @@ def add_story(request):
 @login_required
 def user_stories(request, username):
     user = get_object_or_404(User, username=username)
-    stories = Story.objects.filter(user=user, created_at__gte=timezone.now() - timedelta(hours=24)).order_by('created_at')
+    recent = timezone.now() - timedelta(hours=24)
+    next_page = request.GET.get('next')
+
+    if next_page == 'profile':
+        users_with_stories = [user]
+        current_index = 0
+    else:
+        # Show all users with stories (people you follow), EXCLUDE yourself unless you are viewing your own story
+        following_ids = list(request.user.following_set.values_list('following__id', flat=True))
+        users_with_stories = (
+            User.objects.filter(
+                id__in=following_ids,
+                stories__created_at__gte=recent
+            )
+            .distinct()
+            .order_by('id')
+        )
+        users_with_stories = list(users_with_stories)
+        # If you are viewing your own story, allow it
+        if user == request.user and user not in users_with_stories:
+            users_with_stories = [user] + users_with_stories
+        current_index = next((i for i, u in enumerate(users_with_stories) if u.username == username), 0)
+
+    stories = Story.objects.filter(user=user, created_at__gte=recent).order_by('created_at')
 
     if not stories.exists():
         messages.info(request, "No stories available.")
         return redirect('home')
 
-    # Track views
     for story in stories:
         StoryView.objects.get_or_create(story=story, viewer=request.user)
 
     context = {
         'stories': stories,
-        'story_user': user
+        'story_user': user,
+        'users_with_stories': users_with_stories,
+        'current_user_index': current_index,
     }
     return render(request, 'stories/view_story.html', context)
 

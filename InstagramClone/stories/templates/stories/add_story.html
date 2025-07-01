@@ -1,0 +1,19 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5" style="max-width:400px;">
+    <h5 class="mb-3">Add Story</h5>
+    <form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Image</label>
+            <input type="file" name="image" class="form-control" accept="image/*" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Caption <span class="text-muted" style="font-size:0.9em;">(optional)</span></label>
+            <textarea name="caption" class="form-control" maxlength="2200" rows="2" placeholder="Write a caption..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Add Story</button>
+    </form>
+</div>
+{% endblock %}

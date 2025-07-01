@@ -3,9 +3,37 @@
 {% block content %}
 <div class="container mt-4" style="max-width:900px;">
     <div class="d-flex flex-column flex-md-row align-items-md-center mb-4">
-        <div class="flex-shrink-0 text-center" style="width: 160px;">
-            <img src="{% if profile.profile_image %}{{ profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
-                 class="rounded-circle" style="width:120px; height:120px; object-fit:cover;" alt="Profile Pic">
+        <div class="flex-shrink-0 text-center position-relative" style="width: 160px;">
+            {% if has_story %}
+                <a href="{% url 'user-stories' target_user.username %}?next=profile">
+                    <img src="{% if profile.profile_image %}{{ profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                         class="rounded-circle"
+                         style="width:120px; height:120px; object-fit:cover;
+                                border: 3px solid {% if not story_viewed %}#f56040{% else %}#ddd{% endif %};
+                                padding:2px; transition:border-color 0.2s;"
+                         alt="Profile Pic">
+                </a>
+                {% if target_user == request.user %}
+                    <a href="{% url 'add-story' %}" style="position:absolute;bottom:10px;right:10px;">
+                        <span style="color:#1877f2;font-size:2.2rem;line-height:1;font-weight:bold;position:relative;z-index:2;">+</span>
+                    </a>
+                {% endif %}
+            {% else %}
+                {% if target_user == request.user %}
+                    <a href="{% url 'add-story' %}">
+                        <img src="{% if profile.profile_image %}{{ profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                             class="rounded-circle"
+                             style="width:120px; height:120px; object-fit:cover; border:3px solid #ddd; padding:2px;"
+                             alt="Profile Pic">
+                        <span style="color:#1877f2;font-size:2.2rem;line-height:1;font-weight:bold;position:absolute;bottom:10px;right:10px;z-index:2;">+</span>
+                    </a>
+                {% else %}
+                    <img src="{% if profile.profile_image %}{{ profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                         class="rounded-circle"
+                         style="width:120px; height:120px; object-fit:cover; border:3px solid #ddd; padding:2px;"
+                         alt="Profile Pic">
+                {% endif %}
+            {% endif %}
         </div>
         <div class="flex-grow-1 ms-md-5 mt-3 mt-md-0">
             <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
@@ -13,6 +41,10 @@
                 {% if target_user != request.user %}
                     {% if is_following %}
                         <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#unfollowModal">Unfollow</button>
+                        <!-- Message button for followers -->
+                        <a href="{% url 'thread' user_id=target_user.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-envelope me-1"></i> Message
+                        </a>
                     {% elif has_requested %}
                         <form method="post" action="{% url 'cancel-follow-request' target_user.id %}">
                             {% csrf_token %}
@@ -35,6 +67,8 @@
                 {% else %}
                     <a href="{% url 'edit-account' %}" class="btn btn-outline-primary btn-sm">Edit Profile</a>
                     <a href="{% url 'blocked-users' %}" class="btn btn-outline-secondary btn-sm">Blocked Users</a>
+                    <!-- Deactivate Account Button -->
+                    <a href="{% url 'deactivate-account' %}" class="btn btn-outline-danger btn-sm">Deactivate Account</a>
                 {% endif %}
             </div>
             <div class="d-flex gap-4 mb-2">

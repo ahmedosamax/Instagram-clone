@@ -1,0 +1,94 @@
+<!-- filepath: d:\Instagram-clone\InstagramClone\messages_app\templates\messages_app\thread.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    .chat-bubble {
+        max-width: 70%;
+        padding: 0.7em 1em;
+        border-radius: 1.2em;
+        margin-bottom: 0.3em;
+        word-break: break-word;
+        font-size: 1.05em;
+        position: relative;
+    }
+    .chat-bubble.me {
+        background: #1877f2;
+        color: #fff;
+        margin-left: auto;
+        border-bottom-right-radius: 0.3em;
+    }
+    .chat-bubble.them {
+        background: #f1f0f0;
+        color: #222;
+        margin-right: auto;
+        border-bottom-left-radius: 0.3em;
+    }
+    .chat-meta {
+        font-size: 0.85em;
+        color: #888;
+        margin-top: 0.1em;
+    }
+    .chat-actions {
+        margin-top: 0.2em;
+    }
+    .seen-indicator {
+        font-size: 0.9em;
+        color: #28a745;
+        margin-left: 0.5em;
+        vertical-align: middle;
+    }
+</style>
+<div class="container mt-4" style="max-width:600px;">
+    <div class="d-flex align-items-center mb-3">
+        <a href="{% url 'inbox' %}" class="btn btn-outline-secondary btn-sm me-2">&larr; Inbox</a>
+        <img src="{% if other_user.profile.profile_image %}{{ other_user.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+             class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;" alt="Avatar">
+        <h5 class="mb-0">{{ other_user.username }}</h5>
+        <a href="{% url 'delete_thread' user_id=other_user.id %}" 
+           class="btn btn-outline-danger btn-sm ms-auto"
+           onclick="return confirm('Are you sure you want to delete this chat?');">
+            <i class="fas fa-trash-alt"></i> Delete Chat
+        </a>
+    </div>
+    <div class="border rounded p-3 mb-3" style="background:#fafafa; min-height:300px; max-height:400px; overflow-y:auto;">
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="d-flex {% if msg.sender == request.user %}justify-content-end{% else %}justify-content-start{% endif %}">
+                    <div class="chat-bubble {% if msg.sender == request.user %}me{% else %}them{% endif %}">
+                        {{ msg.content }}
+                        <div class="chat-meta">
+                            {{ msg.timestamp|timesince }} ago
+                            {% if msg.sender == request.user and forloop.last and msg.is_read %}
+                                <span class="seen-indicator">Seen</span>
+                            {% endif %}
+                        </div>
+                        {% if msg.sender == request.user %}
+                            <div class="chat-actions">
+                                <a href="{% url 'edit_message' msg.id %}" class="badge bg-warning text-dark text-decoration-none me-1" style="font-size:0.95em;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form method="post" action="{% url 'delete_message' msg.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="badge bg-danger border-0" style="font-size:0.95em;">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center text-muted">No messages yet. Say hi!</div>
+        {% endif %}
+    </div>
+    <form method="post" action="" class="d-flex gap-2">
+        {% csrf_token %}
+        <input type="text" name="content" class="form-control" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+</div>
+{% endblock %}
