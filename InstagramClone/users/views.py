@@ -6,14 +6,16 @@ from django.contrib.auth.models import User
 from django.urls import conf
 from django.db.models import Q
 from .forms import CustomUserCreationForm, ProfileForm
-from .models import Profile,Follow, FollowRequest, Block
+from .models import Profile,Follow, FollowRequest, Block,SearchHistory
 from posts.models import Post
+from django.urls import reverse
+from django.http import JsonResponse
 
 def loginUser(request):
     page = 'login'
 
     if request.user.is_authenticated:
-        return redirect('profiles')
+        return redirect('home')
 
     if request.method == 'POST':
         username = request.POST['username'].lower()
@@ -28,12 +30,13 @@ def loginUser(request):
 
         if user is not None:
             login(request, user)
-            return redirect(request.GET['next'] if 'next' in request.GET else 'account')
+            return redirect('home')
 
         else:
             messages.error(request, 'Username OR password is incorrect')
+            
 
-    return render(request, 'users/login_register.html')
+    return render(request, 'users/login.html')
 
 @login_required
 def logoutUser(request):
@@ -62,7 +65,7 @@ def registerUser(request):
                 request, 'An error has occurred during registration')
 
     context = {'page': page, 'form': form}
-    return render(request, 'users/login_register.html', context)
+    return render(request, 'users/register.html', context)
 
 # --------------------------------------------
 # PROFILE VIEWS
@@ -71,29 +74,40 @@ def registerUser(request):
 @login_required
 def profile_view(request, username):
     target_user = get_object_or_404(User, username=username)
+    profile = target_user.profile
 
     # Block check
     if Block.objects.filter(blocker=target_user, blocked=request.user).exists():
         messages.error(request, "You are blocked by this user.")
-        return redirect('home')
+        return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
     if Block.objects.filter(blocker=request.user, blocked=target_user).exists():
         messages.error(request, "You have blocked this user.")
-        return redirect('home')
+        return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
-    profile = target_user.profile
-    posts = target_user.posts.all()
+    # Check follow status
     is_following = Follow.objects.filter(follower=request.user, following=target_user).exists()
     has_requested = FollowRequest.objects.filter(sender=request.user, receiver=target_user).exists()
+
+    # Only show posts if public or following
+    if not profile.is_private or is_following or target_user == request.user:
+        posts = target_user.posts.all()
+    else:
+        posts = []
 
     context = {
         'target_user': target_user,
         'profile': profile,
         'posts': posts,
         'is_following': is_following,
-        'has_requested': has_requested
+        'has_requested': has_requested,
+        'post_count': target_user.posts.count(),
+        'followers_count': target_user.followers_set.count(),
+        'following_count': target_user.following_set.count(),
     }
+
     return render(request, 'users/profile.html', context)
+
 
 
 @login_required
@@ -117,11 +131,30 @@ def edit_profile(request):
 
 @login_required
 def search_users(request):
-    query = request.GET.get("q")
-    users = []
+    query = request.GET.get('q', '').strip()
+    blocked_ids = Block.objects.filter(blocker=request.user).values_list('blocked_id', flat=True)
+
+    users = User.objects.none()  # Default: empty list
     if query:
-        users = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
-    return render(request, "users/search.html", {"users": users})
+        # Perform search excluding current user and blocked users
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(profile__bio__icontains=query)
+        ).exclude(id=request.user.id).exclude(id__in=blocked_ids)
+
+        # Save query to history (if not already existing)
+        if query:
+            SearchHistory.objects.get_or_create(user=request.user, keyword=query)
+
+    # Get search history to display
+    history = SearchHistory.objects.filter(user=request.user).order_by('-timestamp')[:10]
+
+    return render(request, 'users/search.html', {
+        'users': users,
+        'history': history,
+        'query': query
+    })
+
 
 # --------------------------------------------
 # FOLLOW SYSTEM
@@ -142,19 +175,13 @@ def follow_user(request, user_id):
     return redirect('profile', username=target.username)
 
 
-@login_required
-def unfollow_user(request, user_id):
-    target = get_object_or_404(User, id=user_id)
-    Follow.objects.filter(follower=request.user, following=target).delete()
-    messages.success(request, f"You unfollowed {target.username}.")
-    return redirect('profile', username=target.username)
-
 
 @login_required
 def followers_list_view(request, username):
     user = get_object_or_404(User, username=username)
     followers = user.followers_set.all()
     return render(request, 'users/followers_list.html', {'user': user, 'followers': followers})
+
 
 
 @login_required
@@ -203,7 +230,7 @@ def block_user(request, user_id):
         Follow.objects.filter(Q(follower=request.user, following=target) | Q(follower=target, following=request.user)).delete()
         FollowRequest.objects.filter(Q(sender=request.user, receiver=target) | Q(sender=target, receiver=request.user)).delete()
         messages.warning(request, f"You blocked {target.username}.")
-    return redirect('profile', username=target.username)
+    return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
 
 @login_required
@@ -211,19 +238,45 @@ def unblock_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
     Block.objects.filter(blocker=request.user, blocked=target).delete()
     messages.success(request, f"You unblocked {target.username}.")
-    return redirect('profile', username=target.username)
+    return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
 
 @login_required
 def blocked_users_list(request):
-    blocks = Block.objects.filter(blocker=request.user)
+    blocks = Block.objects.filter(blocker=request.user).select_related('blocked__profile')
     return render(request, 'users/blocked_users.html', {'blocks': blocks})
 
 
 
 
-
-
-
     
+
+@login_required
+def unfollow_user(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    Follow.objects.filter(follower=request.user, following=target).delete()
+    return redirect(request.GET['next'] if 'next' in request.GET else 'home')
+
+@login_required
+def remove_follower(request, follower_id):
+    follower = get_object_or_404(User, id=follower_id)
+    Follow.objects.filter(follower=follower, following=request.user).delete()
+    return redirect(request.GET['next'] if 'next' in request.GET else 'home')
+
+
+
+
+
+@login_required
+def cancel_follow_request(request, user_id):
+    receiver = get_object_or_404(User, id=user_id)
+    FollowRequest.objects.filter(sender=request.user, receiver=receiver).delete()
+    return redirect('profile', username=receiver.username)
+
+
+@login_required
+def delete_search_history(request, keyword):
+    SearchHistory.objects.filter(user=request.user, keyword=keyword).delete()
+    return redirect('search-users')
+
 

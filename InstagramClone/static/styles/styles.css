@@ -1,0 +1,30 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #ffffff;
+    color: #000;
+}
+
+/* Sidebar icon size */
+.sidebar-link i {
+  font-size: 22px;
+}
+
+/* Sidebar text */
+.sidebar-link {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Sidebar container */
+.sidebar {
+  background-color: #fff;
+  border-right: 1px solid #dee2e6;
+}
+
+/* Sidebar hover effect */
+.sidebar-link:hover {
+  color: #000;
+  text-decoration: none;
+  transform: translateX(3px);
+  transition: 0.2s ease;
+}
