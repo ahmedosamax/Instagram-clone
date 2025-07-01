@@ -42,7 +42,14 @@
                 <h2 class="fw-bold" style="font-family: 'Segoe UI';">Instagram</h2>
                 <a href="{% url 'home' %}" class="nav-link text-dark sidebar-link"><i class="fas fa-home me-2"></i> Home</a>
                 <a href="{% url 'search-users' %}" class="nav-link text-dark sidebar-link"><i class="fas fa-search me-2"></i> Search</a>
-                <a href="{% url 'inbox' %}" class="nav-link text-dark sidebar-link"><i class="fas fa-envelope me-2"></i> Messages</a>
+                <a href="{% url 'inbox' %}" class="nav-link text-dark sidebar-link position-relative">
+                    <i class="fas fa-envelope me-2"></i> Messages
+                    {% if has_unread_messages %}
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                            <span class="visually-hidden">New alerts</span>
+                        </span>
+                    {% endif %}
+                </a>
                 <a href="{% url 'notifications:list' %}" class="nav-link text-dark sidebar-link position-relative">
                     <i class="fas fa-bell me-2"></i> Notifications
                     {% if unread_notifications_count > 0 %}

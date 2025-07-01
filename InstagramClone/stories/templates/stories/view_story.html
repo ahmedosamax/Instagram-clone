@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+.story-progress-bar {
+    height: 3px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    gap: 2px;
+}
+.story-progress-segment {
+    flex: 1;
+    background: #1877f2;
+    width: 0%;
+    transition: width 0.2s;
+    border-radius: 2px;
+}
+.story-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2.5rem;
+    color: #fff;
+    background: rgba(0,0,0,0.2);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    user-select: none;
+}
+.story-arrow-left { left: 10px; }
+.story-arrow-right { right: 10px; }
+</style>
+<div style="position:absolute;top:20px;right:30px;z-index:10;">
+    <a href="{% if request.GET.next == 'profile' %}{% url 'profile' stories.0.user.username %}{% else %}{% url 'home' %}{% endif %}" 
+       style="font-size:2rem;color:#fff;text-decoration:none;font-weight:bold;background:rgba(0,0,0,0.3);border-radius:50%;padding:0 12px;">
+        &times;
+    </a>
+</div>
+<div class="d-flex justify-content-center align-items-center" style="height:80vh; position:relative;">
+    <div class="card shadow position-relative" style="width:400px;overflow:hidden;">
+        <!-- Progress Bar -->
+        <div class="story-progress-bar position-absolute w-100" style="top:0; left:0; z-index:2;">
+            {% for s in stories %}
+                <div class="story-progress-segment" id="progress-{{ forloop.counter0 }}"></div>
+            {% endfor %}
+        </div>
+        <!-- Arrows -->
+        {% if users_with_stories|length > 1 %}
+            <div class="story-arrow story-arrow-left" onclick="prevStory()" style="left:10px;">&#8592;</div>
+            <div class="story-arrow story-arrow-right" onclick="nextStory()" style="right:10px;">&#8594;</div>
+        {% endif %}
+        <!-- Story Content -->
+        {% for story in stories %}
+            <div class="story-slide" id="story-{{ forloop.counter0 }}" style="display: {% if forloop.first %}block{% else %}none{% endif %};">
+                <img src="{{ story.image.url }}" class="card-img-top" style="object-fit:cover;height:400px;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <a href="{% url 'profile' story.user.username %}" class="d-flex align-items-center text-decoration-none text-dark">
+                            <img src="{% if story.user.profile.profile_image %}{{ story.user.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}" class="rounded-circle me-2" style="width:36px;height:36px;object-fit:cover;">
+                            <strong>{{ story.user.username }}</strong>
+                        </a>
+                        <span class="ms-auto text-muted" style="font-size:0.9em;">{{ story.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="mb-2">{{ story.caption }}</p>
+                    {% if story.user == request.user %}
+                        <a href="{% url 'delete-story' story.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this story?');">Delete</a>
+                        <a href="{% url 'story-viewers' story.id %}" class="btn btn-sm btn-outline-secondary">Viewers</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+<script>
+const STORY_DURATION = 5000; // 5 seconds per story
+let current = 0;
+const total = {{ stories|length }};
+let timer = null;
+
+function showStory(idx) {
+    for (let i = 0; i < total; i++) {
+        document.getElementById('story-' + i).style.display = (i === idx) ? 'block' : 'none';
+        document.getElementById('progress-' + i).style.width = (i < idx) ? '100%' : (i === idx ? '0%' : '0%');
+    }
+    animateProgress(idx);
+}
+
+function animateProgress(idx) {
+    clearTimeout(timer);
+    let progress = 0;
+    const segment = document.getElementById('progress-' + idx);
+    segment.style.width = '0%';
+    function step() {
+        progress += 100 / (STORY_DURATION / 50);
+        if (progress >= 100) {
+            segment.style.width = '100%';
+            nextStory();
+        } else {
+            segment.style.width = progress + '%';
+            timer = setTimeout(step, 50);
+        }
+    }
+    step();
+}
+
+function nextStory() {
+    if (current < total - 1) {
+        current++;
+        showStory(current);
+    } else {
+        // Go to next user's stories if available (only if more than one user)
+        const nextUserIndex = {{ current_user_index }} + 1;
+        const users = [{% for u in users_with_stories %}'{{ u.username }}',{% endfor %}];
+        const nextParam = "{{ request.GET.next|default_if_none:'' }}";
+        if (users.length > 1 && nextUserIndex < users.length) {
+            let url = "{% url 'user-stories' 'USERNAME_REPLACE' %}".replace('USERNAME_REPLACE', users[nextUserIndex]);
+            if (nextParam) url += "?next=" + nextParam;
+            window.location.href = url;
+        } else {
+            // If only one user (profile), or last user, go back
+            window.location.href = "{% if request.GET.next == 'profile' %}{% url 'profile' stories.0.user.username %}{% else %}{% url 'home' %}{% endif %}";
+        }
+    }
+}
+function prevStory() {
+    if (current > 0) {
+        current--;
+        showStory(current);
+    } else {
+        // Go to previous user's stories if available (only if more than one user)
+        const prevUserIndex = {{ current_user_index }} - 1;
+        const users = [{% for u in users_with_stories %}'{{ u.username }}',{% endfor %}];
+        const nextParam = "{{ request.GET.next|default_if_none:'' }}";
+        if (users.length > 1 && prevUserIndex >= 0) {
+            let url = "{% url 'user-stories' 'USERNAME_REPLACE' %}".replace('USERNAME_REPLACE', users[prevUserIndex]);
+            if (nextParam) url += "?next=" + nextParam;
+            window.location.href = url;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    showStory(current);
+    // Click left/right on image to skip
+    document.querySelectorAll('.story-slide').forEach((el, idx) => {
+        el.onclick = function(e) {
+            const rect = el.getBoundingClientRect();
+            if (e.clientX - rect.left < rect.width / 2) {
+                prevStory();
+            } else {
+                nextStory();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

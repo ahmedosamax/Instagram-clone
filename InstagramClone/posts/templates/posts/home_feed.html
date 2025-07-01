@@ -21,52 +21,105 @@
 }
 </style>
 <div class="container mt-4">
+
+    <!-- STORIES BAR START -->
+    <div class="d-flex align-items-end mb-4" style="overflow-x:auto;">
+        <!-- Your story -->
+        <div class="text-center me-3">
+            {% for info in stories_info %}
+                {% if info.user.id == request.user.id %}
+                    <a href="{% url 'user-stories' request.user.username %}?next=home">
+                        <img src="{% if info.profile_image %}{{ info.profile_image }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                             class="rounded-circle"
+                             style="width:66px;height:66px;object-fit:cover;
+                                    border: 3px solid {% if not info.story_viewed %}#f56040{% else %}#ddd{% endif %};
+                                    padding:2px; transition:border-color 0.2s;"
+                             alt="Profile Pic">
+                    </a>
+                    <small class="d-block mt-1" style="font-size:0.95em;">Your Story</small>
+                {% endif %}
+            {% endfor %}
+            {% if not your_story %}
+                <a href="{% url 'add-story' %}">
+                    <img src="{% if request.user.profile.profile_image %}{{ request.user.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                         class="rounded-circle"
+                         style="width:66px;height:66px;object-fit:cover;border:3px solid #1877f2;padding:2px;"
+                         alt="Profile Pic">
+                </a>
+                <small class="d-block mt-1" style="font-size:0.95em;">Your Story</small>
+            {% endif %}
+        </div>
+        <!-- "+" button beside your story -->
+        <div class="text-center me-3 d-flex flex-column align-items-center justify-content-end" style="height:90px;">
+            <a href="{% url 'add-story' %}" style="text-decoration:none;">
+                <span style="color:#1877f2;font-size:2.5rem;line-height:1;font-weight:bold;display:block;">+</span>
+            </a>
+            <small class="d-block mt-1" style="font-size:0.95em;visibility:hidden;">Add</small>
+        </div>
+        <!-- Other users' stories -->
+        {% for info in stories_info %}
+            {% if info.user.id != request.user.id %}
+                <div class="text-center me-3">
+                    <a href="{% url 'user-stories' info.user.username %}">
+                        <img src="{% if info.profile_image %}{{ info.profile_image }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                             class="rounded-circle"
+                             style="width:66px;height:66px;object-fit:cover;
+                                    border: 3px solid {% if not info.story_viewed %}#f56040{% else %}#ddd{% endif %};
+                                    padding:2px; transition:border-color 0.2s;"
+                             alt="Profile Pic">
+                    </a>
+                    <small class="d-block mt-1" style="font-size:0.95em;">{{ info.user.username }}</small>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <!-- STORIES BAR END -->
+
     <h3 class="mb-4">Home Feed</h3>
 
     {% if posts %}
-        
-            {% for post in posts %}
-                <div class="d-flex justify-content-center mb-4">
-                    <div class="card shadow-sm border-0 rounded-4" style="width: 100%; max-width: 500px;">
-                        <!-- Post Header -->
-                        <div class="card-header bg-white border-0 d-flex align-items-center py-2">
-                            <img src="{% if post.user.profile.profile_image %}{{ post.user.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
-                                class="rounded-circle me-2" width="32" height="32" alt="Avatar">
-                            <strong>
-                                <a href="{% url 'profile' post.user.username %}" class="text-dark text-decoration-none">
-                                    {{ post.user.username }}
-                                </a>
-                            </strong>
-                            <small class="text-muted ms-auto">{{ post.created_at|timesince }} ago</small>
-                        </div>
-                        <!-- Post Image -->
-                        <a href="{% url 'post_detail' post.id %}" class="post-image-link">
-                            <img src="{{ post.image.url }}" class="card-img-top post-image" alt="Post Image">
-                        </a>
-                        <!-- Post Footer -->
-                        <div class="card-body pb-2">
-                            {% if post.caption %}
-                                <p class="mb-2"><strong>{{ post.user.username }}</strong> {{ post.caption }}</p>
-                            {% endif %}
-                            <div class="d-flex align-items-center mt-2 gap-3">
-                                <form class="like-form d-inline" data-post-id="{{ post.id }}">
-                                    {% csrf_token %}
-                                    {% if post.id in liked_post_ids %}
-                                        <button type="button" class="btn btn-link p-0 like-btn" style="color:#ed4956; font-size:1.5rem;">&#10084;</button>
-                                    {% else %}
-                                        <button type="button" class="btn btn-link p-0 like-btn" style="color:#262626; font-size:1.5rem;">&#9825;</button>
-                                    {% endif %}
-                                </form>
-                                <span class="ms-1" style="font-weight:500;">{{ post.total_likes }} likes</span>
-                                <a href="{% url 'post_detail' post.id %}" class="text-decoration-none ms-3" style="color:#262626;">
-                                    <span style="font-size:1.3rem;">💬</span>
-                                    <span class="ms-1" style="font-weight:500;">{{ post.total_comments }} comments</span>
-                                </a>
-                            </div>
+        {% for post in posts %}
+            <div class="d-flex justify-content-center mb-4">
+                <div class="card shadow-sm border-0 rounded-4" style="width: 100%; max-width: 500px;">
+                    <!-- Post Header -->
+                    <div class="card-header bg-white border-0 d-flex align-items-center py-2">
+                        <img src="{% if post.user.profile.profile_image %}{{ post.user.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                            class="rounded-circle me-2" width="32" height="32" alt="Avatar">
+                        <strong>
+                            <a href="{% url 'profile' post.user.username %}" class="text-dark text-decoration-none">
+                                {{ post.user.username }}
+                            </a>
+                        </strong>
+                        <small class="text-muted ms-auto">{{ post.created_at|timesince }} ago</small>
+                    </div>
+                    <!-- Post Image -->
+                    <a href="{% url 'post_detail' post.id %}" class="post-image-link">
+                        <img src="{{ post.image.url }}" class="card-img-top post-image" alt="Post Image">
+                    </a>
+                    <!-- Post Footer -->
+                    <div class="card-body pb-2">
+                        {% if post.caption %}
+                            <p class="mb-2"><strong>{{ post.user.username }}</strong> {{ post.caption }}</p>
+                        {% endif %}
+                        <div class="d-flex align-items-center mt-2 gap-3">
+                            <form class="like-form d-inline" data-post-id="{{ post.id }}">
+                                {% csrf_token %}
+                                {% if post.id in liked_post_ids %}
+                                    <button type="button" class="btn btn-link p-0 like-btn" style="color:#ed4956; font-size:1.5rem;">&#10084;</button>
+                                {% else %}
+                                    <button type="button" class="btn btn-link p-0 like-btn" style="color:#262626; font-size:1.5rem;">&#9825;</button>
+                                {% endif %}
+                            </form>
+                            <span class="ms-1" style="font-weight:500;">{{ post.total_likes }} likes</span>
+                            <a href="{% url 'post_detail' post.id %}" class="text-decoration-none ms-3" style="color:#262626;">
+                                <span style="font-size:1.3rem;">💬</span>
+                                <span class="ms-1" style="font-weight:500;">{{ post.total_comments }} comments</span>
+                            </a>
                         </div>
                     </div>
                 </div>
-            {% endfor %}
+            </div>
+        {% endfor %}
     {% else %}
         <p class="text-muted">You are not following anyone or they haven't posted yet.</p>
     {% endif %}

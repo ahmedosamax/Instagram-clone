@@ -32,4 +32,5 @@ urlpatterns = [
     path('block/<int:user_id>/', views.block_user, name='block-user'),
     path('unblock/<int:user_id>/', views.unblock_user, name='unblock-user'),
     path('blocked-users/', views.blocked_users_list, name='blocked-users'),
+    path('deactivate/', views.deactivate_account, name='deactivate-account'),
 ]

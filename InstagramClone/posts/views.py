@@ -6,7 +6,9 @@ from django.http import HttpResponse
 from .models import Post, Comment, Like
 from .forms import PostForm, CommentForm
 from users.models import Follow
-
+from stories.models import Story, StoryView
+from datetime import timedelta
+from django.utils import timezone
 @login_required
 def home_feed(request):
     following_users = Follow.objects.filter(follower=request.user).values_list('following__id', flat=True)
@@ -14,9 +16,46 @@ def home_feed(request):
 
     liked_post_ids = Like.objects.filter(user=request.user, post__in=posts).values_list('post_id', flat=True)
 
+    # --- STORIES FEATURE START ---
+    recent = timezone.now() - timedelta(hours=24)
+    story_users = list(following_users) + [request.user.id]
+    all_stories = (
+        Story.objects.filter(user__id__in=story_users, created_at__gte=recent)
+        .select_related('user')
+        .order_by('user', '-created_at')
+    )
+    # Get latest story per user in Python (works on all DBs)
+    latest_stories_dict = {}
+    for story in all_stories:
+        if story.user_id not in latest_stories_dict:
+            latest_stories_dict[story.user_id] = story
+    latest_stories = list(latest_stories_dict.values())
+
+    # Build stories_info for the stories bar
+    stories_info = []
+    for story in latest_stories:
+        user = story.user
+        user_stories = [s for s in all_stories if s.user_id == user.id]
+        has_story = bool(user_stories)
+        story_viewed = True
+        if has_story and request.user.is_authenticated:
+            viewed_count = StoryView.objects.filter(story__in=user_stories, viewer=request.user).count()
+            story_viewed = viewed_count == len(user_stories)
+        stories_info.append({
+            'user': user,
+            'profile_image': user.profile.profile_image.url if hasattr(user.profile, 'profile_image') and user.profile.profile_image else None,
+            'has_story': has_story,
+            'story_viewed': story_viewed,
+        })
+
+    your_story = any(story.user_id == request.user.id for story in latest_stories)
+    # --- STORIES FEATURE END ---
+
     return render(request, 'posts/home_feed.html', {
         'posts': posts,
-        'liked_post_ids': liked_post_ids
+        'liked_post_ids': liked_post_ids,
+        'stories_info': stories_info,  # for the stories bar with ring logic
+        'your_story': your_story,      # for the "Your Story" logic
     })
 
 @login_required

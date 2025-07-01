@@ -1,0 +1,34 @@
+<!-- filepath: d:\Instagram-clone\InstagramClone\stories\templates\stories\story_viewers.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4" style="max-width:500px;">
+    <h4 class="mb-2">Viewers</h4>
+    <div class="mb-3 text-muted" style="font-size:1.1em;">
+        {{ viewers|length }} viewer{{ viewers|length|pluralize }}
+    </div>
+    {% if viewers %}
+        <ul class="list-group list-group-flush">
+            {% for view in viewers %}
+                <li class="list-group-item d-flex align-items-center py-3">
+                    <a href="{% url 'profile' view.viewer.username %}">
+                        <img src="{% if view.viewer.profile.profile_image %}{{ view.viewer.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                             class="rounded-circle me-3" style="width:48px;height:48px;object-fit:cover;">
+                    </a>
+                    <div>
+                        <a href="{% url 'profile' view.viewer.username %}" class="fw-bold text-dark text-decoration-none">
+                            {{ view.viewer.username }}
+                        </a>
+                        {% if view.viewer.profile.name %}
+                            <div class="text-muted" style="font-size:0.95em;">{{ view.viewer.profile.name }}</div>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No viewers yet.</p>
+    {% endif %}
+    <a href="javascript:history.back()" class="btn btn-outline-secondary mt-4">Back</a>
+</div>
+{% endblock %}
