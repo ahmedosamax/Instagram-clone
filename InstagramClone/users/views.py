@@ -280,3 +280,15 @@ def delete_search_history(request, keyword):
     return redirect('search-users')
 
 
+
+
+def live_search_users(request):
+    q = request.GET.get('q', '')
+    users = User.objects.filter(username__icontains=q)[:10]
+    results = []
+    for user in users:
+        results.append({
+            'username': user.username,
+            'profile_image': user.profile.profile_image.url if user.profile.profile_image else '/static/profiles/user-default.png'
+        })
+    return JsonResponse({'results': results})
