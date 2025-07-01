@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+    <h4 class="mb-3">Notifications</h4>
+    <form method="post" action="{% url 'notifications:mark_all_read' %}" class="mb-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-primary">Mark all as read</button>
+    </form>
+    <div class="list-group">
+        {% if notifications %}
+            {% for notification in notifications %}
+                <div class="list-group-item d-flex align-items-center py-3 {% if not notification.is_read %}bg-light{% endif %}">
+                    <!-- Sender Avatar -->
+                    <a href="{% url 'profile' notification.sender.username %}">
+                        <img src="{% if notification.sender.profile.profile_image %}{{ notification.sender.profile.profile_image.url }}{% else %}{% static 'profiles/user-default.png' %}{% endif %}"
+                            class="rounded-circle me-3" style="width:44px; height:44px; object-fit:cover;" alt="Avatar">
+                    </a>
+                    <!-- Notification Message -->
+                    <div class="flex-grow-1">
+                        <span>
+                            <a href="{% url 'profile' notification.sender.username %}" class="fw-bold text-dark text-decoration-none">{{ notification.sender.username }}</a>
+                            {% if notification.notification_type == 'like' and notification.post %}
+                                liked your <a href="{% url 'post_detail' notification.post.id %}">post</a>.
+                            {% elif notification.notification_type == 'comment' and notification.post %}
+                                commented on your <a href="{% url 'post_detail' notification.post.id %}">post</a>.
+                            {% elif notification.notification_type == 'follow' %}
+                                started following you.
+                            {% elif notification.notification_type == 'follow_request' %}
+                                requested to follow you.
+                                {% if notification.follow_request %}
+                                    <form method="post" action="{% url 'accept-follow-request' notification.follow_request.id %}" class="d-inline ms-2">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-primary">Accept</button>
+                                    </form>
+                                    <form method="post" action="{% url 'reject-follow-request' notification.follow_request.id %}" class="d-inline ms-2">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                    </form>
+                                {% endif %}
+                            {% elif notification.notification_type == 'request_accepted' %}
+                                accepted your follow request.
+                            {% endif %}
+                        </span>
+                        <br>
+                        <small class="text-muted">{{ notification.timestamp|timesince }} ago</small>
+                    </div>
+                    {% if notification.post and notification.post.image %}
+                        <a href="{% url 'post_detail' notification.post.id %}">
+                            <img src="{{ notification.post.image.url }}" class="rounded ms-3" style="width:44px; height:44px; object-fit:cover;" alt="Post">
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="list-group-item text-center text-muted">No notifications yet.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from posts.models import Post, Comment, Like
-from users.models import Follow
+from users.models import Follow,FollowRequest
 from .models import Notification
 
 @receiver(post_save, sender=Comment)
@@ -34,3 +34,16 @@ def create_like_notification(sender, instance, created, **kwargs):
             notification_type='like',
             post=instance.post
         )
+
+@receiver(post_save, sender=FollowRequest)
+def create_follow_request_notification(sender, instance, created, **kwargs):
+    if created:
+        Notification.objects.create(
+            sender=instance.sender,      # The user who sent the follow request
+            receiver=instance.receiver,  # The user who receives the follow request
+            notification_type='follow_request',
+            follow_request=instance
+        )
+
+
+
