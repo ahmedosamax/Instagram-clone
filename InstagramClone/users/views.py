@@ -10,6 +10,7 @@ from .models import Profile,Follow, FollowRequest, Block,SearchHistory
 from posts.models import Post
 from django.urls import reverse
 from django.http import JsonResponse
+from notifications.models import Notification
 
 def loginUser(request):
     page = 'login'
@@ -133,14 +134,17 @@ def edit_profile(request):
 def search_users(request):
     query = request.GET.get('q', '').strip()
     blocked_ids = Block.objects.filter(blocker=request.user).values_list('blocked_id', flat=True)
+    blocked_by_ids = Block.objects.filter(blocked=request.user).values_list('blocker_id', flat=True)
 
     users = User.objects.none()  # Default: empty list
     if query:
-        # Perform search excluding current user and blocked users
+        # Exclude current user, users you blocked, and users who blocked you
         users = User.objects.filter(
             Q(username__icontains=query) |
             Q(profile__bio__icontains=query)
-        ).exclude(id=request.user.id).exclude(id__in=blocked_ids)
+        ).exclude(id=request.user.id)\
+         .exclude(id__in=blocked_ids)\
+         .exclude(id__in=blocked_by_ids)
 
         # Save query to history (if not already existing)
         if query:
@@ -203,13 +207,19 @@ def send_follow_request(request, user_id):
 
 
 @login_required
+@login_required
 def accept_follow_request(request, request_id):
     follow_request = get_object_or_404(FollowRequest, id=request_id, receiver=request.user)
     Follow.objects.get_or_create(follower=follow_request.sender, following=request.user)
+    notif = Notification.objects.create(
+        sender=request.user,
+        receiver=follow_request.sender,
+        notification_type='request_accepted',
+    )
+    print("DEBUG: Notification created:", notif, notif.id)
     follow_request.delete()
     messages.success(request, f"You accepted {follow_request.sender.username}'s follow request.")
     return redirect('profile', username=request.user.username)
-
 
 @login_required
 def reject_follow_request(request, request_id):
@@ -283,8 +293,23 @@ def delete_search_history(request, keyword):
 
 
 def live_search_users(request):
-    q = request.GET.get('q', '')
-    users = User.objects.filter(username__icontains=q)[:10]
+    q = request.GET.get('q', '').strip()
+    users = User.objects.all()
+
+    if request.user.is_authenticated:
+        # Exclude self
+        users = users.exclude(id=request.user.id)
+        # Exclude users you have blocked
+        blocked_ids = Block.objects.filter(blocker=request.user).values_list('blocked_id', flat=True)
+        users = users.exclude(id__in=blocked_ids)
+        # Exclude users who have blocked you
+        blocked_by_ids = Block.objects.filter(blocked=request.user).values_list('blocker_id', flat=True)
+        users = users.exclude(id__in=blocked_by_ids)
+
+    if q:
+        users = users.filter(username__icontains=q)
+
+    users = users[:10]
     results = []
     for user in users:
         results.append({
