@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow-sm p-4" style="max-width: 600px; width: 100%;">
+        <h5 class="mb-3">Edit Comment</h5>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ form.content.label_tag }}
+                {{ form.content }}
+            </div>
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'post_detail' comment.post.id %}" class="btn btn-secondary btn-sm">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-sm">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ urlpatterns = [
     # Profile
     path('edit/', views.edit_profile, name='edit-account'),
     path('search/', views.search_users, name='search-users'),
+    path('live-search/', views.live_search_users, name='live-search-users'),
     path('search/delete/<str:keyword>/', views.delete_search_history, name='delete-search-history'),
     path('profile/<str:username>/', views.profile_view, name='profile'),
 

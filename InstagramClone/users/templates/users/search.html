@@ -48,6 +48,37 @@
         </ul>
     {% endif %}
 </div>
+<script>
+const searchInput = document.getElementById('live-search');
+const resultsList = document.getElementById('live-results');
+
+searchInput.addEventListener('input', function() {
+    const query = this.value.trim();
+    if (query.length === 0) {
+        resultsList.style.display = 'none';
+        resultsList.innerHTML = '';
+        return;
+    }
+    fetch("{% url 'live-search-users' %}?q=" + encodeURIComponent(query))
+        .then(response => response.json())
+        .then(data => {
+            resultsList.innerHTML = '';
+            if (data.results.length === 0) {
+                resultsList.innerHTML = '<li class="list-group-item">No users found.</li>';
+            } else {
+                data.results.forEach(user => {
+                    resultsList.innerHTML += `
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="${user.profile_image}" class="rounded-circle me-3" style="width:40px; height:40px;">
+                            <a href="/profile/${user.username}/" class="text-decoration-none text-dark">${user.username}</a>
+                        </li>
+                    `;
+                });
+            }
+            resultsList.style.display = 'block';
+        });
+});
+</script>
 {% endblock %}
 
 

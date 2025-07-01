@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
-
+from django.http import HttpResponse
 from .models import Post, Comment, Like
 from .forms import PostForm, CommentForm
 from users.models import Follow
@@ -10,10 +10,14 @@ from users.models import Follow
 @login_required
 def home_feed(request):
     following_users = Follow.objects.filter(follower=request.user).values_list('following__id', flat=True)
-
     posts = Post.objects.filter(user__id__in=following_users).order_by('-created_at')
 
-    return render(request, 'posts/home_feed.html', {'posts': posts})
+    liked_post_ids = Like.objects.filter(user=request.user, post__in=posts).values_list('post_id', flat=True)
+
+    return render(request, 'posts/home_feed.html', {
+        'posts': posts,
+        'liked_post_ids': liked_post_ids
+    })
 
 @login_required
 def create_post(request):
@@ -59,10 +63,14 @@ def delete_post(request, post_id):
 
 
 
+@login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     comments = post.comments.filter(parent__isnull=True).order_by('-created_at')  # top-level only
     comment_form = CommentForm()
+
+    # ✅ Get liked user IDs
+    liked_user_ids = post.likes.values_list('user_id', flat=True)
 
     if request.method == 'POST':
         comment_form = CommentForm(request.POST)
@@ -84,8 +92,10 @@ def post_detail(request, post_id):
     return render(request, 'posts/post_detail.html', {
         'post': post,
         'comments': comments,
-        'comment_form': comment_form
+        'comment_form': comment_form,
+        'liked_user_ids': liked_user_ids,  # ✅ pass to template
     })
+
 
 @login_required
 def edit_comment(request, comment_id):
@@ -115,7 +125,9 @@ def delete_comment(request, comment_id):
         messages.success(request, "Comment deleted.")
         return redirect('post_detail', post_id=post.id)
 
-    return render(request, 'posts/delete_comment.html', {'comment': comment})
+    return render(request, 'posts/delete_comment.html', {'comment': comment, 'post': post})
+
+
 
 @login_required
 def toggle_like(request, post_id):
@@ -123,7 +135,8 @@ def toggle_like(request, post_id):
     like, created = Like.objects.get_or_create(user=request.user, post=post)
     if not created:
         like.delete()
-        messages.info(request, "You unliked this post.")
+        # Optionally: messages.info(request, "You unliked this post.")
     else:
-        messages.success(request, "You liked this post.")
-    return redirect('post_detail', post_id=post.id)
+        # Optionally: messages.success(request, "You liked this post.")
+        pass
+    return HttpResponse(status=204)  # No Content, no redirect
