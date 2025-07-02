@@ -46,7 +46,7 @@
                                 <div>
                                     <div class="fw-bold">{{ other_user.username }}</div>
                                     <small class="text-muted">
-                                        {% with last_msg=thread.message_set.last %}
+                                        {% with last_msg=thread.messages.last %}
                                             {% if last_msg %}
                                                 {{ last_msg.sender.username }}: {{ last_msg.content|truncatechars:30 }}
                                                 <span class="ms-2">{{ last_msg.timestamp|timesince }} ago</span>

@@ -15,8 +15,6 @@ def home_feed(request):
     posts = Post.objects.filter(user__id__in=following_users).order_by('-created_at')
 
     liked_post_ids = Like.objects.filter(user=request.user, post__in=posts).values_list('post_id', flat=True)
-
-    # --- STORIES FEATURE START ---
     recent = timezone.now() - timedelta(hours=24)
     story_users = list(following_users) + [request.user.id]
     all_stories = (
@@ -24,14 +22,14 @@ def home_feed(request):
         .select_related('user')
         .order_by('user', '-created_at')
     )
-    # Get latest story per user in Python (works on all DBs)
+    
     latest_stories_dict = {}
     for story in all_stories:
         if story.user_id not in latest_stories_dict:
             latest_stories_dict[story.user_id] = story
     latest_stories = list(latest_stories_dict.values())
 
-    # Build stories_info for the stories bar
+   
     stories_info = []
     for story in latest_stories:
         user = story.user
@@ -49,13 +47,12 @@ def home_feed(request):
         })
 
     your_story = any(story.user_id == request.user.id for story in latest_stories)
-    # --- STORIES FEATURE END ---
 
     return render(request, 'posts/home_feed.html', {
         'posts': posts,
         'liked_post_ids': liked_post_ids,
-        'stories_info': stories_info,  # for the stories bar with ring logic
-        'your_story': your_story,      # for the "Your Story" logic
+        'stories_info': stories_info, 
+        'your_story': your_story, 
     })
 
 @login_required
@@ -84,7 +81,6 @@ def edit_post(request, post_id):
         form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Post updated.')
             return redirect('post_detail', post_id=post.id)
 
     return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
@@ -95,7 +91,6 @@ def delete_post(request, post_id):
 
     if request.method == 'POST':
         post.delete()
-        messages.success(request, 'Post deleted.')
         return redirect('home')
 
     return render(request, 'posts/delete_post.html', {'post': post})
@@ -105,10 +100,9 @@ def delete_post(request, post_id):
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.filter(parent__isnull=True).order_by('-created_at')  # top-level only
+    comments = post.comments.filter(parent__isnull=True).order_by('-created_at')
     comment_form = CommentForm()
 
-    # ✅ Get liked user IDs
     liked_user_ids = post.likes.values_list('user_id', flat=True)
 
     if request.method == 'POST':
@@ -125,14 +119,13 @@ def post_detail(request, post_id):
                     new_comment.parent = parent_comment
 
             new_comment.save()
-            messages.success(request, 'Comment added.')
             return redirect('post_detail', post_id=post.id)
 
     return render(request, 'posts/post_detail.html', {
         'post': post,
         'comments': comments,
         'comment_form': comment_form,
-        'liked_user_ids': liked_user_ids,  # ✅ pass to template
+        'liked_user_ids': liked_user_ids,
     })
 
 
@@ -145,7 +138,6 @@ def edit_comment(request, comment_id):
         form = CommentForm(request.POST, instance=comment)
         if form.is_valid():
             form.save()
-            messages.success(request, "Comment updated.")
             return redirect('post_detail', post_id=comment.post.id)
 
     return render(request, 'posts/edit_comment.html', {'form': form, 'comment': comment})
@@ -156,12 +148,10 @@ def delete_comment(request, comment_id):
     post = comment.post
 
     if request.user != comment.user and request.user != post.user:
-        messages.error(request, "You don't have permission to delete this comment.")
         return redirect('post_detail', post_id=post.id)
 
     if request.method == 'POST':
         comment.delete()
-        messages.success(request, "Comment deleted.")
         return redirect('post_detail', post_id=post.id)
 
     return render(request, 'posts/delete_comment.html', {'comment': comment, 'post': post})
@@ -174,8 +164,6 @@ def toggle_like(request, post_id):
     like, created = Like.objects.get_or_create(user=request.user, post=post)
     if not created:
         like.delete()
-        # Optionally: messages.info(request, "You unliked this post.")
     else:
-        # Optionally: messages.success(request, "You liked this post.")
         pass
-    return HttpResponse(status=204)  # No Content, no redirect
+    return HttpResponse(status=204)

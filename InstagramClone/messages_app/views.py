@@ -13,9 +13,7 @@ from users.models import Block
 def inbox_view(request):
     threads = Thread.objects.filter(Q(user1=request.user) | Q(user2=request.user))
     for thread in threads:
-        # Determine the other user
         other_user = thread.user2 if thread.user1 == request.user else thread.user1
-        # Check for unread messages from the other user
         thread.has_unread = thread.messages.filter(sender=other_user, is_read=False).exists()
     return render(request, 'messages_app/inbox.html', {'threads': threads})
 
@@ -26,7 +24,6 @@ def thread_view(request, user_id):
     other_user = get_object_or_404(User, id=user_id)
     if Block.objects.filter(blocker=request.user, blocked=other_user).exists() or \
        Block.objects.filter(blocker=other_user, blocked=request.user).exists():
-        messages.error(request, "You cannot chat because one of you has blocked the other.")
         return redirect('inbox')
     user1, user2 = sorted([request.user, other_user], key=lambda x: x.id)
     thread, created = Thread.objects.get_or_create(user1=user1, user2=user2)
@@ -40,7 +37,6 @@ def thread_view(request, user_id):
             form = MessageEditForm(request.POST, instance=message_obj)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Message updated.")
                 return redirect('thread', user_id=other_user.id)
         else:
             content = request.POST.get('content')
@@ -88,7 +84,6 @@ def delete_message(request, message_id):
 
     thread = message.thread
     message.delete()
-    messages.success(request, "Message deleted.")
     return redirect('thread', user_id=thread.user1.id if thread.user1 != request.user else thread.user2.id)
 
 
@@ -99,7 +94,6 @@ def edit_message(request, message_id):
     if message.sender != request.user:
         return HttpResponseForbidden("You can only edit your own messages.")
 
-    # Determine the other user in the thread
     if message.thread.user1 == request.user:
         other_user_id = message.thread.user2.id
     else:
@@ -110,7 +104,6 @@ def edit_message(request, message_id):
         if new_content:
             message.content = new_content
             message.save()
-            messages.success(request, "Message updated.")
             return redirect('thread', user_id=other_user_id)
         else:
             messages.error(request, "Message cannot be empty.")
@@ -125,8 +118,6 @@ def delete_thread(request, user_id):
     user1, user2 = sorted([request.user, other_user], key=lambda x: x.id)
     thread = Thread.objects.filter(user1=user1, user2=user2).first()
     if thread:
-        # Only allow if the user is part of the thread
         if request.user == thread.user1 or request.user == thread.user2:
             thread.delete()
-            messages.success(request, "Chat deleted.")
     return redirect('inbox')

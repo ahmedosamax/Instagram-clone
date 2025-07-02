@@ -142,7 +142,7 @@
                 </div>
 
                 <div class="forgot">
-                    <a href="#">Forgot password?</a>
+                    <a href="{% url 'password_reset' %}">Forgot password?</a>
                 </div>
             </div>
 
@@ -150,11 +150,7 @@
                 <p>Don't have an account? <a href="{% url 'register' %}">Sign up</a></p>
             </div>
 
-            <div class="get-app">
-                <p>Get the app.</p>
-                <img src="{% static 'assets/app-store.png' %}" alt="App Store">
-                <img src="{% static 'assets/google-play.png' %}" alt="Google Play">
-            </div>
+            
         </div>
     </div>
 </body>

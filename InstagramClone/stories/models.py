@@ -11,7 +11,6 @@ class Story(models.Model):
     is_expired = models.BooleanField(default=False) 
 
     def has_expired(self):
-        """Check if the story is older than 24 hours"""
         return timezone.now() > self.created_at + timedelta(hours=24)
 
     def viewers_count(self):
