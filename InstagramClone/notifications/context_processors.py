@@ -14,7 +14,6 @@ def unread_notifications_count(request):
 def base_context(request):
     has_unread_messages = False
     if request.user.is_authenticated:
-        # Check if any thread has unread messages for this user
         has_unread_messages = Message.objects.filter(
             thread__user1=request.user
         ).filter(~Q(sender=request.user), is_read=False).exists() or \

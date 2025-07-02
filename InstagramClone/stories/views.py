@@ -15,7 +15,6 @@ def add_story(request):
 
         if image:
             Story.objects.create(user=request.user, image=image, caption=caption)
-            messages.success(request, "Story added successfully.")
             return redirect('home')
         else:
             messages.error(request, "Please upload an image.")
@@ -32,7 +31,6 @@ def user_stories(request, username):
         users_with_stories = [user]
         current_index = 0
     else:
-        # Show all users with stories (people you follow), EXCLUDE yourself unless you are viewing your own story
         following_ids = list(request.user.following_set.values_list('following__id', flat=True))
         users_with_stories = (
             User.objects.filter(
@@ -43,7 +41,6 @@ def user_stories(request, username):
             .order_by('id')
         )
         users_with_stories = list(users_with_stories)
-        # If you are viewing your own story, allow it
         if user == request.user and user not in users_with_stories:
             users_with_stories = [user] + users_with_stories
         current_index = next((i for i, u in enumerate(users_with_stories) if u.username == username), 0)
@@ -51,7 +48,6 @@ def user_stories(request, username):
     stories = Story.objects.filter(user=user, created_at__gte=recent).order_by('created_at')
 
     if not stories.exists():
-        messages.info(request, "No stories available.")
         return redirect('home')
 
     for story in stories:
@@ -69,7 +65,6 @@ def user_stories(request, username):
 def delete_story(request, story_id):
     story = get_object_or_404(Story, id=story_id, user=request.user)
     story.delete()
-    messages.success(request, "Story deleted.")
     return redirect('profile', username=request.user.username)
 
 
@@ -81,10 +76,7 @@ def story_viewers(request, story_id):
 
 @login_required
 def story_feed(request):
-    # Get the list of user IDs the current user follows
     followed_user_ids = request.user.following_set.values_list('following__id', flat=True)
-
-    # Get all non-expired stories from followed users
     stories = Story.objects.filter(
         user__id__in=followed_user_ids,
         is_expired=False

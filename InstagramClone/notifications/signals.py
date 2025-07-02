@@ -39,8 +39,8 @@ def create_like_notification(sender, instance, created, **kwargs):
 def create_follow_request_notification(sender, instance, created, **kwargs):
     if created:
         Notification.objects.create(
-            sender=instance.sender,      # The user who sent the follow request
-            receiver=instance.receiver,  # The user who receives the follow request
+            sender=instance.sender, 
+            receiver=instance.receiver,
             notification_type='follow_request',
             follow_request=instance
         )

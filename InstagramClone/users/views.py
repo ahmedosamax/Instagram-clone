@@ -59,55 +59,47 @@ def registerUser(request):
             user.username = user.username.lower()
             user.save()
 
-            messages.success(request, 'User account was created!')
-
             login(request, user)
             return redirect('edit-account')
 
         else:
-            messages.success(
+            messages.error(
                 request, 'An error has occurred during registration')
 
     context = {'page': page, 'form': form}
     return render(request, 'users/register.html', context)
 
-# --------------------------------------------
-# PROFILE VIEWS
-# --------------------------------------------
+
 
 @login_required
 def profile_view(request, username):
     target_user = get_object_or_404(User, username=username)
     profile = target_user.profile
 
-    # Block check
     if Block.objects.filter(blocker=target_user, blocked=request.user).exists():
-        messages.error(request, "You are blocked by this user.")
         return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
     if Block.objects.filter(blocker=request.user, blocked=target_user).exists():
-        messages.error(request, "You have blocked this user.")
         return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
-    # Check follow status
     is_following = Follow.objects.filter(follower=request.user, following=target_user).exists()
     has_requested = FollowRequest.objects.filter(sender=request.user, receiver=target_user).exists()
 
-    # Only show posts if public or following
     if not profile.is_private or is_following or target_user == request.user:
         posts = target_user.posts.all()
     else:
         posts = []
 
-    # --- STORIES FEATURE ---
     recent = timezone.now() - timedelta(hours=24)
-    user_stories = Story.objects.filter(user=target_user, created_at__gte=recent).order_by('created_at')
+    can_view_story = not profile.is_private or is_following or target_user == request.user
+    if can_view_story:
+        user_stories = Story.objects.filter(user=target_user, created_at__gte=recent).order_by('created_at')
+    else:
+        user_stories = Story.objects.none()
     has_story = user_stories.exists()
-    # Check if all stories are viewed by the current user
     story_viewed = True
     if has_story and request.user.is_authenticated:
         story_viewed = StoryView.objects.filter(story__in=user_stories, viewer=request.user).count() == user_stories.count()
-    # --- END STORIES FEATURE ---
 
     context = {
         'target_user': target_user,
@@ -140,7 +132,6 @@ def edit_profile(request):
         if profile_image:
             profile.profile_image = profile_image
         profile.save()
-        messages.success(request, "Profile updated.")
         return redirect('profile', username=request.user.username)
 
     return render(request, 'users/edit_profile.html', {'profile': profile})
@@ -152,21 +143,17 @@ def search_users(request):
     blocked_ids = Block.objects.filter(blocker=request.user).values_list('blocked_id', flat=True)
     blocked_by_ids = Block.objects.filter(blocked=request.user).values_list('blocker_id', flat=True)
 
-    users = User.objects.none()  # Default: empty list
+    users = User.objects.none()
     if query:
-        # Exclude current user, users you blocked, and users who blocked you
         users = User.objects.filter(
             Q(username__icontains=query) |
             Q(profile__bio__icontains=query)
         ).exclude(id=request.user.id)\
          .exclude(id__in=blocked_ids)\
          .exclude(id__in=blocked_by_ids)
-
-        # Save query to history (if not already existing)
         if query:
             SearchHistory.objects.get_or_create(user=request.user, keyword=query)
 
-    # Get search history to display
     history = SearchHistory.objects.filter(user=request.user).order_by('-timestamp')[:10]
 
     return render(request, 'users/search.html', {
@@ -176,9 +163,7 @@ def search_users(request):
     })
 
 
-# --------------------------------------------
-# FOLLOW SYSTEM
-# --------------------------------------------
+
 
 @login_required
 def follow_user(request, user_id):
@@ -188,10 +173,8 @@ def follow_user(request, user_id):
 
     if target.profile.is_private:
         FollowRequest.objects.get_or_create(sender=request.user, receiver=target)
-        messages.info(request, "Follow request sent.")
     else:
         Follow.objects.get_or_create(follower=request.user, following=target)
-        messages.success(request, f"You are now following {target.username}.")
     return redirect('profile', username=target.username)
 
 
@@ -210,19 +193,16 @@ def following_list_view(request, username):
     following = user.following_set.all()
     return render(request, 'users/following_list.html', {'user': user, 'following': following})
 
-# --------------------------------------------
-# FOLLOW REQUESTS
-# --------------------------------------------
+
 
 @login_required
 def send_follow_request(request, user_id):
     receiver = get_object_or_404(User, id=user_id)
     FollowRequest.objects.get_or_create(sender=request.user, receiver=receiver)
-    messages.info(request, "Follow request sent.")
     return redirect('profile', username=receiver.username)
 
 
-@login_required
+
 @login_required
 def accept_follow_request(request, request_id):
     follow_request = get_object_or_404(FollowRequest, id=request_id, receiver=request.user)
@@ -234,19 +214,15 @@ def accept_follow_request(request, request_id):
     )
     print("DEBUG: Notification created:", notif, notif.id)
     follow_request.delete()
-    messages.success(request, f"You accepted {follow_request.sender.username}'s follow request.")
     return redirect('profile', username=request.user.username)
 
 @login_required
 def reject_follow_request(request, request_id):
     follow_request = get_object_or_404(FollowRequest, id=request_id, receiver=request.user)
     follow_request.delete()
-    messages.info(request, "Follow request rejected.")
     return redirect('profile', username=request.user.username)
 
-# --------------------------------------------
-# BLOCK SYSTEM
-# --------------------------------------------
+
 
 @login_required
 def block_user(request, user_id):
@@ -255,7 +231,6 @@ def block_user(request, user_id):
         Block.objects.get_or_create(blocker=request.user, blocked=target)
         Follow.objects.filter(Q(follower=request.user, following=target) | Q(follower=target, following=request.user)).delete()
         FollowRequest.objects.filter(Q(sender=request.user, receiver=target) | Q(sender=target, receiver=request.user)).delete()
-        messages.warning(request, f"You blocked {target.username}.")
     return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
 
@@ -263,7 +238,6 @@ def block_user(request, user_id):
 def unblock_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
     Block.objects.filter(blocker=request.user, blocked=target).delete()
-    messages.success(request, f"You unblocked {target.username}.")
     return redirect(request.GET['next'] if 'next' in request.GET else 'home')
 
 
@@ -313,12 +287,9 @@ def live_search_users(request):
     users = User.objects.all()
 
     if request.user.is_authenticated:
-        # Exclude self
         users = users.exclude(id=request.user.id)
-        # Exclude users you have blocked
         blocked_ids = Block.objects.filter(blocker=request.user).values_list('blocked_id', flat=True)
         users = users.exclude(id__in=blocked_ids)
-        # Exclude users who have blocked you
         blocked_by_ids = Block.objects.filter(blocked=request.user).values_list('blocker_id', flat=True)
         users = users.exclude(id__in=blocked_by_ids)
 
@@ -341,10 +312,9 @@ def deactivate_account(request):
         password = request.POST.get('password')
         user = authenticate(username=request.user.username, password=password)
         if user:
-            user.is_active = False
-            user.save()
+            user.delete()
             logout(request)
-            messages.success(request, "Your account has been deactivated.")
+            messages.success(request, "Your account has been deleted.")
             return redirect('login')
         else:
             messages.error(request, "Incorrect password. Please try again.")

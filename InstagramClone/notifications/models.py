@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from users.models import FollowRequest  # <-- Add this import
+from users.models import FollowRequest
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
@@ -17,7 +17,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     post = models.ForeignKey('posts.Post', on_delete=models.CASCADE, null=True, blank=True)
     comment = models.ForeignKey('posts.Comment', on_delete=models.CASCADE, null=True, blank=True)
-    follow_request = models.ForeignKey(FollowRequest, null=True, blank=True, on_delete=models.CASCADE)  # <-- Add this line
+    follow_request = models.ForeignKey(FollowRequest, null=True, blank=True, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
     is_read = models.BooleanField(default=False)
 
