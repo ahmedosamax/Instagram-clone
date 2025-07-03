@@ -14,7 +14,6 @@
         margin-bottom: 1.5em;
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
-
     .chat-bubble {
         max-width: 70%;
         padding: 0.7em 1.1em;
@@ -26,7 +25,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         transition: background 0.2s;
     }
-
     .chat-bubble.me {
         background: #1877f2;
         color: #fff;
@@ -35,7 +33,6 @@
         border-top-right-radius: 1.2em;
         border-top-left-radius: 1.2em;
     }
-
     .chat-bubble.them {
         background: #fff;
         color: #222;
@@ -45,12 +42,10 @@
         border-top-left-radius: 1.2em;
         border: 1px solid #eee;
     }
-
     .chat-meta {
         font-size: 0.85em;
         color: #888;
     }
-
     .chat-actions {
         margin-top: 0.3em;
         display: flex;
@@ -58,14 +53,12 @@
         gap: 0.6em;
         font-size: 0.9em;
     }
-
     .seen-indicator {
         color: #28a745;
         display: flex;
         align-items: center;
         font-size: 0.92em;
     }
-
     .chat-avatar {
         width: 40px;
         height: 40px;
@@ -74,14 +67,12 @@
         margin-right: 0.7em;
         border: 2px solid #eee;
     }
-
     .chat-header-link {
         text-decoration: none;
         color: #222;
         font-weight: 600;
         transition: color 0.2s;
     }
-
     .chat-header-link:hover {
         color: #1877f2;
         text-decoration: underline;
@@ -105,7 +96,7 @@
         </a>
     </div>
 
-    <div class="chat-container">
+    <div class="chat-container" id="chat-messages">
         {% if messages %}
             {% for msg in messages %}
                 <div class="d-flex {% if msg.sender == request.user %}justify-content-end{% else %}justify-content-start{% endif %}">
@@ -137,7 +128,6 @@
                     </div>
                 </div>
             {% endfor %}
-
         {% else %}
             <div class="text-center text-muted">No messages yet. Say hi!</div>
         {% endif %}
@@ -149,4 +139,57 @@
         <button type="submit" class="btn btn-primary">Send</button>
     </form>
 </div>
+
+<script>
+const threadId = "{{ thread.id }}";
+const currentUser = "{{ request.user.username }}";
+const editUrl = "{% url 'edit_message' 0 %}".replace('/0/', '/');
+const deleteUrl = "{% url 'delete_message' 0 %}".replace('/0/', '/');
+
+function fetchMessages() {
+    fetch("{% url 'get_messages' thread.id %}")
+        .then(response => response.json())
+        .then(data => {
+            const chat = document.getElementById('chat-messages');
+            chat.innerHTML = '';
+            if (data.messages.length === 0) {
+                chat.innerHTML = '<div class="text-center text-muted">No messages yet. Say hi!</div>';
+            } else {
+                data.messages.forEach(msg => {
+                    const isMe = msg.sender === currentUser;
+                    let actions = '';
+                    if (isMe) {
+                        actions = `
+                            <div class="chat-actions d-flex align-items-center gap-2">
+                                <a href="${editUrl}${msg.id}/" class="badge bg-warning text-dark text-decoration-none">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form method="post" action="${deleteUrl}${msg.id}/" class="d-inline">
+                                    <button type="submit" class="badge bg-danger border-0">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </form>
+                                ${msg.is_read ? `<span class="seen-indicator" title="Seen"><i class="fas fa-eye me-1"></i> Seen</span>` : ''}
+                            </div>
+                        `;
+                    }
+                    const div = document.createElement('div');
+                    div.className = 'd-flex ' + (isMe ? 'justify-content-end' : 'justify-content-start');
+                    div.innerHTML = `
+                        <div class="chat-bubble ${isMe ? 'me' : 'them'}">
+                            ${msg.content}
+                            <div class="chat-meta d-flex align-items-center justify-content-between">
+                                <span>${msg.timestamp}</span>
+                                ${actions}
+                            </div>
+                        </div>
+                    `;
+                    chat.appendChild(div);
+                });
+                chat.scrollTop = chat.scrollHeight;
+            }
+        });
+}
+setInterval(fetchMessages, 1000);
+</script>
 {% endblock %}

@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.contrib import messages
 from .forms import MessageEditForm
 from users.models import Block
+from django.http import JsonResponse
 
 @login_required
 def inbox_view(request):
@@ -121,3 +122,20 @@ def delete_thread(request, user_id):
         if request.user == thread.user1 or request.user == thread.user2:
             thread.delete()
     return redirect('inbox')
+
+
+def get_messages(request, thread_id):
+    thread = get_object_or_404(Thread, id=thread_id)
+    messages = Message.objects.filter(thread=thread).order_by('timestamp')
+    data = [
+        {
+            'id': msg.id,
+            'sender': msg.sender.username,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M'),
+            'is_read': msg.is_read,
+            'can_edit': msg.sender == request.user,
+        }
+        for msg in messages
+    ]
+    return JsonResponse({'messages': data})
